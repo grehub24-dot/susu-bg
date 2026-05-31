@@ -12,8 +12,8 @@ const DEFAULT_CURRENCY = process.env.DEFAULT_CURRENCY || 'GHS';
 
 // E-Levy Configuration (Ghana government tax on digital transactions)
 // Effective May 1, 2022: 0.5% on transfers/withdrawals over GHS 100
-const ELEVY_RATE = 0.005; // 0.5%
-const ELEVY_THRESHOLD = 100; // Only apply E-Levy on amounts > GHS 100
+const ELEVY_RATE = parseFloat(process.env.ELEVY_RATE || "0.005");
+const ELEVY_THRESHOLD = parseFloat(process.env.ELEVY_THRESHOLD || "100");
 
 class PaymentService {
     static asMoney(value) {
