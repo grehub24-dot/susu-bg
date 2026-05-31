@@ -86,7 +86,7 @@ app.use("/api/webhooks", express.json({
 }));
 
 // JSON body parsing (limit configurable for Vercel — Hobby plan max ~4.5mb)
-const BODY_LIMIT = process.env.BODY_LIMIT || "50mb";
+const BODY_LIMIT = process.env.BODY_LIMIT || "4.5mb";
 app.use(express.json({ limit: BODY_LIMIT }));
 app.use(express.urlencoded({ limit: BODY_LIMIT, extended: true }));
 
