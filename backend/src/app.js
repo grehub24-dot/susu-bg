@@ -64,6 +64,10 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Security headers (helmet)
+const helmet = require("helmet");
+app.use(helmet());
+
 // Initialize Sentry if DSN is configured
 initSentry(app);
 
