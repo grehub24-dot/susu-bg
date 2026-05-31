@@ -71,6 +71,10 @@ app.use(helmet());
 // Initialize Sentry if DSN is configured
 initSentry(app);
 
+// Cookie parsing (for auth cookies)
+const cookieParser = require("cookie-parser");
+app.use(cookieParser());
+
 // Request ID tracking
 app.use(requestIdMiddleware);
 
