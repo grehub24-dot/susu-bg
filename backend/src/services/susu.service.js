@@ -337,20 +337,22 @@ class SusuService {
             .eq('group_id', groupId)
             .eq('status', 'ACTIVE');
 
-        const payouts = [];
-
-        for (const member of members) {
-            const payout = await this.calculateMemberPayout(member.id, cycleEnd);
-            if (payout.netPayout > 0) {
-                payouts.push(payout);
-                await this.recordPayout(payout);
-            }
-        }
+        // Process payouts in parallel to avoid N+1 query pattern
+        const payouts = await Promise.all(
+            (members || []).map(async (member) => {
+                const payout = await this.calculateMemberPayout(member.id, cycleEnd);
+                if (payout.netPayout > 0) {
+                    await this.recordPayout(payout);
+                    return payout;
+                }
+                return null;
+            })
+        );
 
         // Complete the cycle
         await this.completeCycle(groupId);
 
-        return payouts;
+        return payouts.filter(Boolean);
     }
 
     static async calculateMemberPayout(membershipId, cycleEnd) {
@@ -619,26 +621,21 @@ class SusuService {
 
         const summary = {
             totalRevenue: 0,
-            commission: 0,
-            processingFees: 0,
-            interest: 0,
-            insuranceFees: 0,
-            smsFees: 0,
-            maintenanceFees: 0,
-            withdrawalFees: 0
+            commission: 0, processingFees: 0, interest: 0,
+            insuranceFees: 0, smsFees: 0, maintenanceFees: 0, withdrawalFees: 0
+        };
+
+        const TYPE_MAP = {
+            'COMMISSION': 'commission', 'PROCESSING_FEE': 'processingFees',
+            'INTEREST': 'interest', 'INSURANCE_FEE': 'insuranceFees',
+            'SMS_FEE': 'smsFees', 'MAINTENANCE_FEE': 'maintenanceFees',
+            'WITHDRAWAL_FEE': 'withdrawalFees'
         };
 
         data?.forEach(item => {
             summary.totalRevenue += item.amount;
-            switch (item.revenue_type) {
-                case 'COMMISSION': summary.commission += item.amount; break;
-                case 'PROCESSING_FEE': summary.processingFees += item.amount; break;
-                case 'INTEREST': summary.interest += item.amount; break;
-                case 'INSURANCE_FEE': summary.insuranceFees += item.amount; break;
-                case 'SMS_FEE': summary.smsFees += item.amount; break;
-                case 'MAINTENANCE_FEE': summary.maintenanceFees += item.amount; break;
-                case 'WITHDRAWAL_FEE': summary.withdrawalFees += item.amount; break;
-            }
+            const key = TYPE_MAP[item.revenue_type];
+            if (key) summary[key] += item.amount;
         });
 
         return summary;
