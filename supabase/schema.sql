@@ -63,6 +63,12 @@ CREATE TABLE staff_users (
     admin_session_token VARCHAR(255),
     admin_session_expires_at TIMESTAMP WITH TIME ZONE,
     last_login_at TIMESTAMP WITH TIME ZONE,
+    failed_login_attempts INTEGER DEFAULT 0,
+    locked_until TIMESTAMP WITH TIME ZONE,
+    mfa_enabled BOOLEAN DEFAULT false,
+    otp_code_hash TEXT,
+    otp_expires_at TIMESTAMP WITH TIME ZONE,
+    otp_session_token TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -205,6 +211,8 @@ CREATE TABLE tellers (
 CREATE INDEX idx_tellers_code ON tellers(teller_code);
 CREATE INDEX idx_tellers_branch ON tellers(branch_id);
 CREATE INDEX idx_tellers_status ON tellers(status);
+ALTER TABLE tellers ADD COLUMN IF NOT EXISTS staff_user_id UUID REFERENCES staff_users(id);
+CREATE INDEX IF NOT EXISTS idx_tellers_staff_user_id ON tellers(staff_user_id);
 
 -- 7. Compliance Flags Table
 CREATE TYPE flag_type AS ENUM ('CTR', 'STR', 'AML_ALERT', 'OTHER');
