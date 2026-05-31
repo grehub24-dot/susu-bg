@@ -390,3 +390,215 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+-- =====================================================
+-- SUSU MODULE TABLES
+-- =====================================================
+
+-- 11. Susu Groups
+CREATE TABLE susu_groups (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    group_name VARCHAR(255) NOT NULL,
+    group_code VARCHAR(30) UNIQUE NOT NULL,
+    target_group VARCHAR(50) DEFAULT 'GENERAL',
+    collector_id UUID REFERENCES staff_users(id) ON DELETE SET NULL,
+    max_members INTEGER DEFAULT 30,
+    daily_contribution DECIMAL(15, 2) DEFAULT 10.00,
+    cycle_days INTEGER DEFAULT 30,
+    status VARCHAR(20) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'COMPLETED')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX idx_susu_groups_code ON susu_groups(group_code);
+CREATE INDEX idx_susu_groups_collector ON susu_groups(collector_id);
+CREATE INDEX idx_susu_groups_status ON susu_groups(status);
+
+-- 12. Susu Memberships
+CREATE TYPE membership_tier AS ENUM ('SILVER', 'GOLD', 'PLATINUM');
+CREATE TYPE membership_status AS ENUM ('ACTIVE', 'INACTIVE', 'COMPLETED');
+
+CREATE TABLE susu_memberships (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    group_id UUID REFERENCES susu_groups(id) ON DELETE CASCADE,
+    membership_number VARCHAR(50) UNIQUE NOT NULL,
+    tier membership_tier DEFAULT 'SILVER',
+    status membership_status DEFAULT 'ACTIVE',
+    daily_contribution DECIMAL(15, 2) DEFAULT 10.00,
+    total_contributions DECIMAL(15, 2) DEFAULT 0.00,
+    ghana_card_number VARCHAR(50),
+    ghana_card_type VARCHAR(20),
+    cycle_start_date DATE,
+    cycle_end_date DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(user_id, group_id)
+);
+
+CREATE INDEX idx_susu_memberships_user ON susu_memberships(user_id);
+CREATE INDEX idx_susu_memberships_group ON susu_memberships(group_id);
+CREATE INDEX idx_susu_memberships_status ON susu_memberships(status);
+
+-- 13. Susu Contributions
+CREATE TYPE payment_method AS ENUM ('CASH', 'MOMO', 'CARD', 'BANK_TRANSFER');
+
+CREATE TABLE susu_contributions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    membership_id UUID REFERENCES susu_memberships(id) ON DELETE CASCADE,
+    group_id UUID REFERENCES susu_groups(id) ON DELETE CASCADE,
+    amount DECIMAL(15, 2) NOT NULL CHECK (amount > 0),
+    contribution_date DATE NOT NULL,
+    payment_method payment_method DEFAULT 'CASH',
+    collector_id UUID REFERENCES staff_users(id) ON DELETE SET NULL,
+    transaction_reference VARCHAR(255),
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(membership_id, contribution_date)
+);
+
+CREATE INDEX idx_susu_contributions_membership ON susu_contributions(membership_id);
+CREATE INDEX idx_susu_contributions_group ON susu_contributions(group_id);
+CREATE INDEX idx_susu_contributions_date ON susu_contributions(contribution_date);
+
+-- 14. Susu Loans
+CREATE TYPE loan_status AS ENUM ('PENDING', 'APPROVED', 'DISBURSED', 'REPAID', 'DEFAULTED', 'CANCELLED');
+
+CREATE TABLE susu_loans (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    borrower_id UUID REFERENCES susu_memberships(id) ON DELETE CASCADE,
+    group_id UUID REFERENCES susu_groups(id) ON DELETE CASCADE,
+    amount DECIMAL(15, 2) NOT NULL CHECK (amount > 0),
+    interest_rate DECIMAL(5, 2) DEFAULT 5.00,
+    loan_term_days INTEGER DEFAULT 30,
+    processing_fee DECIMAL(15, 2) DEFAULT 0.00,
+    insurance_fee DECIMAL(15, 2) DEFAULT 0.00,
+    total_repayment DECIMAL(15, 2) NOT NULL,
+    amount_paid DECIMAL(15, 2) DEFAULT 0.00,
+    status loan_status DEFAULT 'PENDING',
+    guarantor_1_id UUID REFERENCES susu_memberships(id) ON DELETE SET NULL,
+    guarantor_2_id UUID REFERENCES susu_memberships(id) ON DELETE SET NULL,
+    application_date DATE NOT NULL,
+    approval_date DATE,
+    disbursement_date DATE,
+    due_date DATE NOT NULL,
+    repaid_date DATE,
+    collector_id UUID REFERENCES staff_users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX idx_susu_loans_borrower ON susu_loans(borrower_id);
+CREATE INDEX idx_susu_loans_group ON susu_loans(group_id);
+CREATE INDEX idx_susu_loans_status ON susu_loans(status);
+
+-- 15. Susu Liquidity (80/20 Rule)
+CREATE TABLE susu_liquidity (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    group_id UUID REFERENCES susu_groups(id) ON DELETE CASCADE UNIQUE,
+    total_deposits DECIMAL(15, 2) DEFAULT 0.00,
+    vault_cash DECIMAL(15, 2) DEFAULT 0.00,
+    loan_portfolio DECIMAL(15, 2) DEFAULT 0.00,
+    available_for_loans DECIMAL(15, 2) DEFAULT 0.00,
+    last_updated TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 16. Susu Cycles
+CREATE TYPE cycle_status AS ENUM ('ACTIVE', 'COMPLETED', 'CANCELLED');
+
+CREATE TABLE susu_cycles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    group_id UUID REFERENCES susu_groups(id) ON DELETE CASCADE,
+    cycle_number INTEGER NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    status cycle_status DEFAULT 'ACTIVE',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(group_id, cycle_number)
+);
+
+CREATE INDEX idx_susu_cycles_group ON susu_cycles(group_id);
+CREATE INDEX idx_susu_cycles_status ON susu_cycles(status);
+
+-- 17. Susu Payouts
+CREATE TABLE susu_payouts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    membership_id UUID REFERENCES susu_memberships(id) ON DELETE CASCADE,
+    cycle_id UUID REFERENCES susu_cycles(id) ON DELETE CASCADE,
+    payout_amount DECIMAL(15, 2) NOT NULL,
+    commission_deducted DECIMAL(15, 2) DEFAULT 0.00,
+    net_payout DECIMAL(15, 2) NOT NULL,
+    payout_date DATE NOT NULL,
+    transaction_reference VARCHAR(255),
+    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'PAID', 'FAILED')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX idx_susu_payouts_membership ON susu_payouts(membership_id);
+CREATE INDEX idx_susu_payouts_cycle ON susu_payouts(cycle_id);
+
+-- 18. Susu Fees
+CREATE TYPE fee_type AS ENUM ('ONBOARDING', 'SMS_SUBSCRIPTION', 'PREMATURE_WITHDRAWAL', 'MAINTENANCE', 'PROCESSING_FEE', 'INSURANCE_FEE');
+
+CREATE TABLE susu_fees (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    membership_id UUID REFERENCES susu_memberships(id) ON DELETE CASCADE,
+    fee_type fee_type NOT NULL,
+    amount DECIMAL(15, 2) NOT NULL CHECK (amount >= 0),
+    description TEXT,
+    charged_date DATE NOT NULL,
+    transaction_reference VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX idx_susu_fees_membership ON susu_fees(membership_id);
+CREATE INDEX idx_susu_fees_type ON susu_fees(fee_type);
+
+-- 19. Susu SMS Logs
+CREATE TABLE susu_sms_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    membership_id UUID REFERENCES susu_memberships(id) ON DELETE CASCADE,
+    phone_number VARCHAR(20) NOT NULL,
+    message_type VARCHAR(50) DEFAULT 'NOTIFICATION',
+    message_content TEXT,
+    status VARCHAR(20) DEFAULT 'SENT',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX idx_susu_sms_logs_membership ON susu_sms_logs(membership_id);
+
+-- 20. Susu Revenue
+CREATE TYPE susu_revenue_type AS ENUM (
+    'COMMISSION', 'PROCESSING_FEE', 'INTEREST', 'INSURANCE_FEE',
+    'SMS_FEE', 'MAINTENANCE_FEE', 'WITHDRAWAL_FEE', 'OTHER'
+);
+
+CREATE TABLE susu_revenue (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    group_id UUID REFERENCES susu_groups(id) ON DELETE CASCADE,
+    revenue_type susu_revenue_type NOT NULL,
+    amount DECIMAL(15, 2) NOT NULL CHECK (amount >= 0),
+    source_id UUID,
+    source_type VARCHAR(50),
+    description TEXT,
+    revenue_date DATE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX idx_susu_revenue_group ON susu_revenue(group_id);
+CREATE INDEX idx_susu_revenue_type ON susu_revenue(revenue_type);
+CREATE INDEX idx_susu_revenue_date ON susu_revenue(revenue_date);
+
+-- Database function: Update membership contribution totals
+CREATE OR REPLACE FUNCTION update_membership_totals(
+    p_membership_id UUID,
+    p_amount DECIMAL
+) RETURNS VOID AS $$
+BEGIN
+    UPDATE susu_memberships
+    SET total_contributions = total_contributions + p_amount,
+        updated_at = timezone('utc'::text, now())
+    WHERE id = p_membership_id;
+END;
+$$ LANGUAGE plpgsql;
