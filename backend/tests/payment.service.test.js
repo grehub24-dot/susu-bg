@@ -65,30 +65,26 @@ describe('PaymentService', () => {
   });
 
   describe('calculateElevy', () => {
-    it('should calculate E-Levy for amounts above minimum', () => {
-      process.env.ELEVY_RATE = '0.015'; // 1.5%
+    beforeEach(() => {
+      process.env.ELEVY_THRESHOLD = '0'; // No threshold floor for tests
+      process.env.ELEVY_RATE = '0.015';  // 1.5%
       process.env.ELEVY_MIN = '0.10';
       process.env.ELEVY_MAX = '100.00';
+    });
 
+    it('should calculate E-Levy for amounts above minimum', () => {
       const elevy = PaymentService.calculateElevy(100);
       expect(elevy).toBe(1.5); // 1.5% of 100
     });
 
     it('should apply minimum E-Levy', () => {
-      process.env.ELEVY_RATE = '0.015';
-      process.env.ELEVY_MIN = '0.10';
-      process.env.ELEVY_MAX = '100.00';
-
-      const elevy = PaymentService.calculateElevy(5); // Very small amount
+      const elevy = PaymentService.calculateElevy(5); // Very small amount → 0.075, below 0.10 min
       expect(elevy).toBe(0.10); // Minimum applies
     });
 
     it('should apply maximum E-Levy', () => {
-      process.env.ELEVY_RATE = '0.015';
-      process.env.ELEVY_MIN = '0.10';
       process.env.ELEVY_MAX = '10.00';
-
-      const elevy = PaymentService.calculateElevy(10000); // Large amount
+      const elevy = PaymentService.calculateElevy(10000); // 150 capped at 10.00 max
       expect(elevy).toBe(10.00); // Maximum applies
     });
 
@@ -96,9 +92,19 @@ describe('PaymentService', () => {
       const elevy = PaymentService.calculateElevy(0);
       expect(elevy).toBe(0);
     });
+
+    it('should return 0 below threshold', () => {
+      process.env.ELEVY_THRESHOLD = '100';
+      const elevy = PaymentService.calculateElevy(50); // 50 <= 100 threshold
+      expect(elevy).toBe(0);
+    });
   });
 
   describe('calculateTotalFees', () => {
+    beforeEach(() => {
+      process.env.ELEVY_THRESHOLD = '0'; // No threshold floor for tests
+    });
+
     it('should calculate all fees for withdrawal', () => {
       process.env.TX_FEE_WITHDRAWAL_FIXED = '1.00';
       process.env.TX_FEE_WITHDRAWAL_RATE = '0';

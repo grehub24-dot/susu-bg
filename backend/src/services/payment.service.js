@@ -12,8 +12,6 @@ const DEFAULT_CURRENCY = process.env.DEFAULT_CURRENCY || 'GHS';
 
 // E-Levy Configuration (Ghana government tax on digital transactions)
 // Effective May 1, 2022: 0.5% on transfers/withdrawals over GHS 100
-const ELEVY_RATE = parseFloat(process.env.ELEVY_RATE || "0.005");
-const ELEVY_THRESHOLD = parseFloat(process.env.ELEVY_THRESHOLD || "100");
 
 class PaymentService {
     static asMoney(value) {
@@ -46,8 +44,15 @@ class PaymentService {
     static calculateElevy(amount) {
         // E-Levy: Ghana government tax on mobile money transactions
         // Applied on withdrawals/transfers OVER GHS 100 at 0.5%
-        if (amount <= ELEVY_THRESHOLD) return 0;
-        return this.roundMoney(amount * ELEVY_RATE);
+        const rate = parseFloat(process.env.ELEVY_RATE || "0.005");
+        const threshold = parseFloat(process.env.ELEVY_THRESHOLD || "100");
+        const minVal = parseFloat(process.env.ELEVY_MIN || "0.10");
+        const maxVal = parseFloat(process.env.ELEVY_MAX || "100.00");
+        if (amount <= threshold) return 0;
+        const raw = amount * rate;
+        if (raw < minVal) return minVal;
+        if (raw > maxVal) return maxVal;
+        return this.roundMoney(raw);
     }
 
     // Ghana-standard fee rates

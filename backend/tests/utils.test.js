@@ -2,10 +2,14 @@
  * Utility Tests
  */
 
-const { createAuthCookie, clearAuthCookie, getCookieValue } = require("./src/lib/cookie");
+const { createAuthCookie, clearAuthCookie, getCookieValue } = require("../src/lib/cookie");
 
 describe("Cookie Utilities", () => {
   const originalEnv = process.env.NODE_ENV;
+
+  beforeEach(() => {
+    jest.resetModules();
+  });
 
   afterEach(() => {
     process.env.NODE_ENV = originalEnv;
@@ -13,19 +17,22 @@ describe("Cookie Utilities", () => {
 
   describe("createAuthCookie", () => {
     it("should create httpOnly cookie string", () => {
-      const cookie = createAuthCookie("test_token", "abc123");
+      const { createAuthCookie: create } = require("../src/lib/cookie");
+      const cookie = create("test_token", "abc123");
       expect(cookie).toContain("HttpOnly");
       expect(cookie).toContain("test_token=abc123");
     });
 
     it("should include Secure flag in production", () => {
       process.env.NODE_ENV = "production";
-      const cookie = createAuthCookie("test_token", "abc123");
+      const { createAuthCookie: create } = require("../src/lib/cookie");
+      const cookie = create("test_token", "abc123");
       expect(cookie).toContain("Secure");
     });
 
     it("should use custom maxAge", () => {
-      const cookie = createAuthCookie("test_token", "abc123", 1);
+      const { createAuthCookie: create } = require("../src/lib/cookie");
+      const cookie = create("test_token", "abc123", 1);
       expect(cookie).toContain("Max-Age=3600");
     });
   });
@@ -51,8 +58,8 @@ describe("Cookie Utilities", () => {
 });
 
 describe("Request ID Middleware", () => {
-  const { requestIdMiddleware, logWithRequestId } = require("./src/middleware/requestId");
-  const logger = require("./src/lib/logger");
+  const { requestIdMiddleware, logWithRequestId } = require("../src/middleware/requestId");
+  const logger = require("../src/lib/logger");
 
   it("should be defined", () => {
     expect(requestIdMiddleware).toBeDefined();
@@ -60,7 +67,7 @@ describe("Request ID Middleware", () => {
 
   it("should generate request ID", () => {
     const mockReq = { headers: {}, method: "GET" };
-    const mockRes = { setHeader: jest.fn(), json: jest.fn() };
+    const mockRes = { setHeader: jest.fn(), json: jest.fn(), send: jest.fn() };
     const mockNext = jest.fn();
 
     requestIdMiddleware(mockReq, mockRes, mockNext);

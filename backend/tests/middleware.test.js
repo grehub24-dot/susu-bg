@@ -19,18 +19,31 @@ describe("Rate Limiter Middleware", () => {
 });
 
 describe("Sanitization Middleware", () => {
-  const { sanitizeInput } = require("./src/middleware/sanitize");
+  const { sanitizeInput } = require("../src/middleware/sanitize");
 
   it("should be defined", () => {
     expect(sanitizeInput).toBeDefined();
   });
 
-  it("should handle object sanitization", () => {
+  it("should reject dangerous content", () => {
     const mockReq = {
       method: "POST",
       body: { name: "<script>alert('xss')</script>" },
     };
-    const mockRes = {};
+    const mockRes = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    const mockNext = jest.fn();
+
+    sanitizeInput(mockReq, mockRes, mockNext);
+    expect(mockNext).not.toHaveBeenCalled();
+    expect(mockRes.status).toHaveBeenCalledWith(400);
+  });
+
+  it("should allow safe content", () => {
+    const mockReq = {
+      method: "POST",
+      body: { name: "John Doe", email: "john@example.com" },
+    };
+    const mockRes = { status: jest.fn().mockReturnThis(), json: jest.fn() };
     const mockNext = jest.fn();
 
     sanitizeInput(mockReq, mockRes, mockNext);
