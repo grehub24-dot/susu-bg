@@ -76,7 +76,6 @@ export default function SusuLoansPage() {
     };
     void load();
   }, [authChecked, groupId]);
-  }, []);
 
   const refresh = async () => {
     if (!groupId) return;

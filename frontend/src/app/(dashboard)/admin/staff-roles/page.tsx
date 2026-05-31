@@ -116,6 +116,8 @@ const getAdminToken = () => {
       .find(row => row.startsWith('admin_session='))
       ?.split('=')[1] || "";
   };
+
+  const fetchStaff = async () => {
     try {
       const response = await fetch("/api/staff-admin/staff", {
         credentials: "same-origin"
