@@ -59,7 +59,7 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-admin-session-token", "x-refresh-token", "x-csrf-token", "x-request-id"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-admin-session-token", "x-refresh-token", "x-request-id"],
 };
 
 app.use(cors(corsOptions));
@@ -85,10 +85,6 @@ app.use(express.urlencoded({ limit: BODY_LIMIT, extended: true }));
 // Input sanitization middleware
 const { sanitizeInput } = require("./middleware/sanitize");
 app.use(sanitizeInput);
-
-// CSRF protection (disabled for API routes)
-const { csrfMiddleware } = require("./middleware/csrf");
-app.use(csrfMiddleware);
 
 // Health check
 app.get("/health", (req, res) => {

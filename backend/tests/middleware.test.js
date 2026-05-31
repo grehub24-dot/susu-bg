@@ -38,13 +38,4 @@ describe("Sanitization Middleware", () => {
   });
 });
 
-describe("CSRF Middleware", () => {
-  const { csrfMiddleware, generateCsrfToken } = require("./src/middleware/csrf");
-
-  it("should generate token", () => {
-    const token = generateCsrfToken();
-    expect(token).toBeDefined();
-    expect(typeof token).toBe("string");
-    expect(token.length).toBeGreaterThan(0);
-  });
-});
+// CSRF middleware removed — API uses token-based auth, CSRF not applicable
