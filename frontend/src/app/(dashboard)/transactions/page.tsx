@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft, Download, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { TransactionSkeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type Tx = {
   id: string;
@@ -25,20 +28,40 @@ const itemVariants = {
   };
 
 export default function TransactionsPage() {
+  const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const [rows, setRows] = useState<Tx[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = async () => {
+    const checkSession = async () => {
       try {
-        const userRaw = localStorage.getItem("susu_user");
-        if (!userRaw) {
-          setRows([]);
+        const res = await fetch("/api/auth/session", { credentials: "same-origin" });
+        if (!res.ok) {
+          router.push("/login");
           return;
         }
-        const user = JSON.parse(userRaw) as { id: string };
+        const data = await res.json();
+        if (!data.success || !data.user) {
+          router.push("/login");
+          return;
+        }
+        setUserId(data.user.id as string);
+        setAuthChecked(true);
+      } catch {
+        router.push("/login");
+      }
+    };
+    checkSession();
+  }, [router]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const load = async () => {
+      try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/transactions/history?userId=${user.id}`
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/transactions/history?userId=${userId}`
         );
         const data = (await response.json()) as { success: boolean; data?: Tx[] };
         setRows(data.data ?? []);
@@ -47,7 +70,11 @@ export default function TransactionsPage() {
       }
     };
     void load();
-  }, []);
+  }, [userId]);
+
+  if (!authChecked) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen p-6 md:p-8 bg-[#FFF5F5]">
@@ -85,14 +112,19 @@ export default function TransactionsPage() {
                   ? [1, 2, 3, 4, 5].map((x) => (
                       <tr key={x} className="border-b border-zinc-50">
                         <td className="py-4" colSpan={5}>
-                          <div className="h-12 animate-pulse rounded-xl bg-zinc-50" />
+                          <TransactionSkeleton />
                         </td>
                       </tr>
                     ))
                   : rows.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-zinc-500">
-                          No transactions found.
+                        <td colSpan={5}>
+                          <EmptyState
+                            icon="inbox"
+                            title="No transactions yet"
+                            description="Your transaction history will appear here once you make your first deposit or withdrawal."
+                            action={{ label: "Make a Deposit", href: "/deposit" }}
+                          />
                         </td>
                       </tr>
                     ) : rows.map((tx) => (

@@ -211,5 +211,25 @@ Build a Susu fintech MVP where clients can register securely, manage wallet bala
 6. Teller role, APIs, and teller UI
 7. USSD instruction placeholder in client dashboard
 
+## 15) Production Readiness Backlog (Saved for Later Implementation)
 
-     
+### Sprint 1 — Security and Funds Safety
+
+- Enforce Paystack webhook signature verification before processing events
+- Harden OTP flow with expiry, retry limits, and one-time usage guarantees
+- Ensure idempotent webhook handling to prevent duplicate wallet credit/debit
+- Enforce RBAC for admin and teller protected routes
+
+### Sprint 2 — Core MVP Completion
+
+- Complete receipt generation plus email and SMS alerts after successful transactions
+- Finish profile/KYC schema and API coverage for all required fields
+- Connect admin messaging UI to real backend endpoints (individual + bulk)
+- Add transaction channel metadata for audit and reporting
+
+### Sprint 3 — Operations and Reliability
+
+- Add teller backend APIs with role controls and auditable transaction trail
+- Improve USSD session resilience and invalid-input handling
+- Add structured observability for auth, payment, and webhook flows
+- Add protective controls like rate limits on sensitive auth endpoints

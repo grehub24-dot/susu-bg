@@ -25,3 +25,41 @@ VALUES
     ((SELECT id FROM wallets WHERE user_id = '11111111-1111-1111-1111-111111111111'), 'TXN-JD-002', 1000.00, 'DEPOSIT', 'SUCCESS'),
     ((SELECT id FROM wallets WHERE user_id = '22222222-2222-2222-2222-222222222222'), 'TXN-JS-001', 250.50, 'DEPOSIT', 'SUCCESS')
 ON CONFLICT (reference) DO NOTHING;
+
+-- 4. Insert Default Admin Users
+-- Password: admin123 (bcrypt hash)
+INSERT INTO admin_users (admin_code, full_name, email, phone_number, password_hash, status)
+VALUES 
+    ('ADM-001', 'System Admin', 'admin@susu-bg.com', '+233501234567', '$2b$10$4vKm4wyHScMwTIsBCfW26u49OIcm.5JHlb130ZpLaAag/wc6Th50G', 'ACTIVE')
+ON CONFLICT (admin_code) DO NOTHING;
+
+-- 5. Insert Default Branches
+INSERT INTO branches (branch_code, name, address, region, phone_number, email, status)
+VALUES 
+    ('BRN-001', 'Accra Central', 'Accra, Ghana', 'Greater Accra', '+233302000001', 'accra@susu-bg.com', 'ACTIVE'),
+    ('BRN-002', 'Kumasi Main', 'Kumasi, Ghana', 'Ashanti', '+233502000002', 'kumasi@susu-bg.com', 'ACTIVE'),
+    ('BRN-003', 'Takoradi Branch', 'Takoradi, Ghana', 'Western', '+233503000003', 'takoradi@susu-bg.com', 'ACTIVE')
+ON CONFLICT (branch_code) DO NOTHING;
+
+-- 6. Insert Default Tellers
+INSERT INTO tellers (teller_code, full_name, email, phone_number, branch_id, status)
+SELECT 
+    'TLR-001', 'John Teller', 'john.teller@susu-bg.com', '+233501000001', id, 'ACTIVE'
+FROM branches WHERE branch_code = 'BRN-001'
+ON CONFLICT (teller_code) DO NOTHING;
+
+-- 7. Insert Sample Compliance Flags
+INSERT INTO compliance_flags (flag_type, flag_status, description, amount)
+VALUES 
+    ('AML_ALERT', 'OPEN', 'Large cash deposit detected', 50000.00),
+    ('CTR', 'INVESTIGATING', 'Currency transaction report needed', 10000.00),
+    ('STR', 'OPEN', 'Suspicious activity pattern', 25000.00)
+ON CONFLICT DO NOTHING;
+
+-- 8. Insert Sample Revenue Ledger Entries
+INSERT INTO revenue_ledger (source_type, category, amount, reference, note)
+VALUES 
+    ('TRANSACTION', 'TRANSACTION_FEE', 150.00, 'REV-001', 'Transaction fee revenue'),
+    ('LOAN', 'LOAN_INTEREST', 500.00, 'REV-002', 'Loan interest'),
+    ('MANUAL', 'MANUALENTRY', 1000.00, 'REV-003', 'Manual deposit')
+ON CONFLICT (reference) DO NOTHING;

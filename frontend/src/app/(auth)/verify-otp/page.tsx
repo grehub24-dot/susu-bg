@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState, Suspense } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { motion } from "framer-motion";
 import { ShieldCheck } from "lucide-react";
+import { AnimatedLoader } from "@/components/ui/AnimatedLoader";
 
 function VerifyOtpForm() {
   const router = useRouter();
@@ -14,14 +15,109 @@ function VerifyOtpForm() {
   const sessionToken = searchParams.get("sessionToken") || "";
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [isPageLoading, setIsPageLoading] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsPageLoading(true);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const normalizeOtp = (value: string) => value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 6);
 
   const endpoint = useMemo(() => {
     if (flow === "registration") return "verify-registration-otp";
     if (flow === "login") return "verify-login-otp";
+    if (flow === "pin-reset") return "verify-pin-reset-otp";
     return "";
   }, [flow]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setResendCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCooldown]);
+
+  const onResend = async () => {
+    const isRegistrationResend = flow === "registration";
+    const isLoginResend = !!sessionToken && flow !== "registration" && flow !== "pin-reset";
+
+    if (!isRegistrationResend && !isLoginResend) return;
+    if (isRegistrationResend && !identifier) {
+      setError("Missing identifier for OTP resend");
+      return;
+    }
+    if (resendCooldown > 0) return;
+
+    setResending(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const resendEndpoint =
+        isRegistrationResend ? "resend-registration-otp" : "resend-login-otp";
+
+      const resendPayload =
+        isRegistrationResend ? { identifier } : { sessionToken };
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/${resendEndpoint}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(resendPayload)
+        }
+      );
+
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        const bodyText = await response.text();
+        setError(
+          `Resend OTP failed (expected JSON). Check NEXT_PUBLIC_BACKEND_URL. Status ${response.status}. Response starts with: ${bodyText
+            .slice(0, 60)
+            .replace(/\s+/g, " ")}`
+        );
+        return;
+      }
+
+      const data = (await response.json()) as {
+        success: boolean;
+        message?: string;
+        issues?: Array<{ path?: string; message?: string }>;
+      };
+
+      if (!response.ok || !data.success) {
+        if (Array.isArray(data.issues) && data.issues.length > 0) {
+          const details = data.issues
+            .map((issue) => {
+              const path = String(issue.path || "").trim();
+              const msg = String(issue.message || "").trim();
+              return path ? `${path}: ${msg}` : msg;
+            })
+            .filter(Boolean)
+            .join(" | ");
+          setError(details || data.message || "Failed to resend OTP");
+        } else {
+          setError(data.message || "Failed to resend OTP");
+        }
+        return;
+      }
+
+      setMessage(data.message || "A new OTP has been sent");
+      setResendCooldown(30);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Failed to resend OTP");
+    } finally {
+      setResending(false);
+    }
+  };
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -35,13 +131,30 @@ function VerifyOtpForm() {
       return;
     }
 
+    if (flow === "login" && !sessionToken) {
+      setError("Missing login session. Please go back and submit the Login form again.");
+      setLoading(false);
+      return;
+    }
+
+    if (flow === "pin-reset" && !identifier) {
+      setError("Missing identifier. Please restart the PIN reset request.");
+      setLoading(false);
+      return;
+    }
+
     const payload =
       flow === "registration"
         ? { identifier, otp }
-        : {
-            sessionToken,
-            otp
-          };
+        : flow === "login"
+          ? {
+              sessionToken,
+              otp
+            }
+          : {
+              identifier,
+              otp
+            };
 
     try {
       const response = await fetch(
@@ -56,11 +169,25 @@ function VerifyOtpForm() {
       const data = (await response.json()) as {
         success: boolean;
         resetToken?: string;
+        user?: { id: string; full_name?: string; email?: string; phone_number?: string };
         message?: string;
+        issues?: Array<{ path?: string; message?: string }>;
       };
 
       if (!response.ok || !data.success) {
-        setError(data.message || "OTP verification failed");
+        if (Array.isArray(data.issues) && data.issues.length > 0) {
+          const details = data.issues
+            .map((issue) => {
+              const path = String(issue.path || "").trim();
+              const msg = String(issue.message || "").trim();
+              return path ? `${path}: ${msg}` : msg;
+            })
+            .filter(Boolean)
+            .join(" | ");
+          setError(details || data.message || "OTP verification failed");
+        } else {
+          setError(data.message || "OTP verification failed");
+        }
         setLoading(false);
         return;
       }
@@ -69,6 +196,17 @@ function VerifyOtpForm() {
         setMessage(data.message || "Registration verified. Continue to login.");
         setLoading(false);
         router.push("/login");
+        return;
+      }
+
+      if (flow === "login") {
+        if (!data.user?.id) {
+          setError("Login session was not created");
+          setLoading(false);
+          return;
+        }
+
+        router.push("/dashboard");
         return;
       }
 
@@ -92,7 +230,15 @@ function VerifyOtpForm() {
   };
 
   return (
-    <motion.form
+    <>
+      <AnimatedLoader 
+        isLoading={isPageLoading} 
+        title="Susu-BG"
+        subtitle="Verifying"
+        variant="default"
+      />
+    
+      <motion.form
       variants={itemVariants}
       initial="hidden"
       animate="show"
@@ -119,8 +265,16 @@ function VerifyOtpForm() {
           <input
             required
             value={otp}
-            onChange={(event) => setOtp(event.target.value)}
+            onChange={(event) => {
+              setError("");
+              setOtp(normalizeOtp(event.target.value));
+            }}
             placeholder="••••••"
+            inputMode="text"
+            autoComplete="one-time-code"
+            maxLength={6}
+            pattern="[A-Za-z0-9]{6}"
+            title="Enter the 6-character OTP (letters and numbers)."
             className="w-full rounded-2xl border border-zinc-200 px-4 py-3 outline-none focus:border-[#A8D5BA] focus:ring-2 focus:ring-[#A8D5BA]/20 transition-all text-2xl tracking-widest font-semibold text-center bg-zinc-50 focus:bg-white"
           />
         </div>
@@ -145,6 +299,24 @@ function VerifyOtpForm() {
       >
         {loading ? "Verifying..." : "Verify OTP"}
       </motion.button>
+
+      {(flow === "registration" || (!!sessionToken && flow !== "pin-reset")) && (
+        <p className="relative z-10 mt-4 text-center text-sm font-medium text-zinc-500">
+          Didn&apos;t get a code?{" "}
+          <button
+            type="button"
+            onClick={onResend}
+            disabled={resending || resendCooldown > 0}
+            className="text-[#A8D5BA] hover:text-[#2d3436] transition-colors underline disabled:opacity-50"
+          >
+            {resending
+              ? "Resending..."
+              : resendCooldown > 0
+                ? `Resend OTP (${resendCooldown}s)`
+                : "Resend OTP"}
+          </button>
+        </p>
+      )}
       
       <p className="relative z-10 mt-6 text-center text-sm font-medium text-zinc-500">
         Back to{" "}
@@ -153,6 +325,7 @@ function VerifyOtpForm() {
         </Link>
       </p>
     </motion.form>
+    </>
   );
 }
 

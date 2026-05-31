@@ -1,0 +1,31 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "enabled": true
+    },
+    "perplexity": {
+      "type": "remote",
+      "url": "https://mcp.perplexity.ai/mcp",
+      "enabled": true,
+      "headers": {
+        "Authorization": "Bearer {env:PERPLEXITY_API_KEY}"
+      }
+    },
+    "rube_mcp": {
+      "type": "remote",
+      "url": "https://rube.app/mcp",
+      "enabled": true,
+      "headers": {
+        "Authorization": "Bearer {env:RUBE_API_TOKEN}"
+      }
+    },
+    "code_pathfinder": {
+      "type": "local",
+      "command": ["pathfinder", "serve", "--project", "."],
+      "enabled": true
+    }
+  }
+}

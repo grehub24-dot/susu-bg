@@ -9,6 +9,7 @@ out/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
 
 # environment
 .env
@@ -19,3 +20,22 @@ supabase/.temp/
 
 # Tooling artifacts
 .antigravity/
+
+# Working notes and reference files
+*.md
+!DEPLOYMENT.md
+!README.md
+!backend/DATABASE_SETUP_INSTRUCTIONS.md
+
+# Binary references
+Bank-Branch-Sort-Codes-August-2017.pdf
+
+# Test artifacts
+backend/test-email*.js
+backend/test-email*.ps1
+
+# IDE / project config
+config.json
+expected.md
+check.md
+ui-ux-pro.json

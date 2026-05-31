@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { MapPin, Camera, Info, CreditCard, User, ShieldCheck } from "lucide-react";
+import { MapPin, Camera, Info, CreditCard, User, ShieldCheck, Landmark } from "lucide-react";
+import { GHANA_BANKS, getBankBySortCode } from "@/lib/bank-data";
+import { AnimatedLoader } from "@/components/ui/AnimatedLoader";
 
 const ghanaCardRegex = /^GHA-\d{9}-\d$/;
 const ghanaPostGpsRegex = /^[A-Z]{1,2}-\d{3}-\d{4}$/;
@@ -80,6 +82,14 @@ const readFileAsDataUrl = (file: File) =>
 export default function RegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
+  const [isPageLoading, setIsPageLoading] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsPageLoading(true);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
 
@@ -114,11 +124,17 @@ export default function RegisterPage() {
   // Step 3: Payment Options
   const [momoNumber, setMomoNumber] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [bankSortCode, setBankSortCode] = useState("");
   const [bankName, setBankName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
 
   const [showBankFields, setShowBankFields] = useState(false);
   const [showCardFields, setShowCardFields] = useState(false);
+
+  const bankAccountNumberInvalid =
+    showBankFields && bankAccountNumber.length > 0 && !isValidGhanaBankAccountNumber(bankAccountNumber);
+
+  const cardNumberInvalid = showCardFields && cardNumber.length > 0 && !/^\d{13,19}$/.test(cardNumber);
 
   // Step 4: Login Credentials
   const [pin, setPin] = useState("");
@@ -435,9 +451,10 @@ export default function RegisterPage() {
             dateOfBirth,
             pin,
             momoNumber,
-            bankAccountNumber,
-            bankName,
-            cardNumber,
+            bankAccountNumber: showBankFields ? bankAccountNumber : "",
+            bankSortCode: showBankFields ? bankSortCode : "",
+            bankName: showBankFields ? bankName : "",
+            cardNumber: showCardFields ? cardNumber : "",
             houseAddress,
             gpsAddress,
             cityTown,
@@ -455,9 +472,22 @@ export default function RegisterPage() {
         requiresOtp?: boolean;
         identifier?: string;
         message?: string;
+        issues?: Array<{ path?: string; message?: string }>;
       };
       if (!response.ok || !data.success) {
-        setError(data.message || "Registration failed");
+        if (Array.isArray(data.issues) && data.issues.length > 0) {
+          const details = data.issues
+            .map((issue) => {
+              const path = String(issue.path || "").trim();
+              const message = String(issue.message || "").trim();
+              return path ? `${path}: ${message}` : message;
+            })
+            .filter(Boolean)
+            .join(" | ");
+          setError(details || data.message || "Registration failed");
+        } else {
+          setError(data.message || "Registration failed");
+        }
         setLoading(false);
         return;
       }
@@ -475,7 +505,15 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6 bg-[#FFF5F5]">
+    <>
+      <AnimatedLoader 
+        isLoading={isPageLoading} 
+        title="Susu-BG"
+        subtitle="Creating Account"
+        variant="default"
+      />
+    
+      <div className="flex min-h-screen items-center justify-center p-6 bg-[#FFF5F5]">
       <motion.form
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } }}
@@ -797,40 +835,81 @@ export default function RegisterPage() {
                 <div className="space-y-2">
                   <button
                     type="button"
-                    onClick={() => setShowBankFields((prev) => !prev)}
+                    onClick={() =>
+                      setShowBankFields((prev) => {
+                        const next = !prev;
+                        if (!next) {
+                          setBankAccountNumber("");
+                          setBankSortCode("");
+                          setBankName("");
+                          setError("");
+                        }
+                        return next;
+                      })
+                    }
                     className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-left text-xs font-semibold text-zinc-600 hover:bg-zinc-50 transition-all"
                     aria-expanded={showBankFields}
                   >
                     Bank Account
                   </button>
                   {showBankFields && (
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-semibold mb-1 text-zinc-500 uppercase tracking-wider">Account Number</label>
-                        <input
-                          value={bankAccountNumber}
-                          onChange={(e) => {
-                            setError("");
-                            setBankAccountNumber(normalizeDigits(e.target.value, 16));
-                          }}
-                          onBlur={() => {
-                            if (bankAccountNumber && !isValidGhanaBankAccountNumber(bankAccountNumber)) {
-                              setError(
-                                "Bank account numbers must be 13 digits (universal banks) or 16 digits (rural banks)."
-                              );
-                            }
-                          }}
-                          placeholder="13 or 16 digits"
-                          inputMode="numeric"
-                          pattern="\d{13}|\d{16}"
-                          title="Enter 13 digits (universal banks) or 16 digits (rural banks). Digits only."
-                          maxLength={16}
-                          className="w-full rounded-2xl border border-zinc-200 px-4 py-3 outline-none focus:border-[#A8D5BA] focus:ring-2 focus:ring-[#A8D5BA]/20 transition-all bg-zinc-50 focus:bg-white"
-                        />
-                        <p className="mt-2 text-xs text-zinc-500">Example: 1234567890123 or 1234567890123456</p>
+                    <div className="space-y-4">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold mb-1 text-zinc-500 uppercase tracking-wider flex items-center gap-1">
+                            <Landmark size={12} /> Sort Code
+                          </label>
+                          <input
+                            value={bankSortCode}
+                            onChange={(e) => {
+                              const value = normalizeDigits(e.target.value, 6);
+                              setBankSortCode(value);
+                              if (value.length >= 2) {
+                                const detectedBank = getBankBySortCode(value);
+                                if (detectedBank) {
+                                  setBankName(detectedBank);
+                                }
+                              }
+                            }}
+                            placeholder="6-digit sort code"
+                            inputMode="numeric"
+                            maxLength={6}
+                            className="w-full rounded-2xl border border-zinc-200 px-4 py-3 outline-none focus:border-[#A8D5BA] focus:ring-2 focus:ring-[#A8D5BA]/20 transition-all bg-zinc-50 focus:bg-white"
+                          />
+                          <p className="mt-2 text-[10px] text-zinc-400">Enter the 6-digit sort code to identify your bank and branch.</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold mb-1 text-zinc-500 uppercase tracking-wider">Account Number</label>
+                          <input
+                            value={bankAccountNumber}
+                            onChange={(e) => {
+                              setError("");
+                              setBankAccountNumber(normalizeDigits(e.target.value, 16));
+                            }}
+                            onBlur={() => {
+                              if (bankAccountNumber && !isValidGhanaBankAccountNumber(bankAccountNumber)) {
+                                setError(
+                                  "Bank account numbers must be 13 digits (universal banks) or 16 digits (rural banks)."
+                                );
+                              }
+                            }}
+                            placeholder="13 or 16 digits"
+                            inputMode="numeric"
+                            pattern="\d{13}|\d{16}"
+                            title="Enter 13 digits (universal banks) or 16 digits (rural banks). Digits only."
+                            maxLength={16}
+                            className="w-full rounded-2xl border border-zinc-200 px-4 py-3 outline-none focus:border-[#A8D5BA] focus:ring-2 focus:ring-[#A8D5BA]/20 transition-all bg-zinc-50 focus:bg-white"
+                          />
+                          <p className="mt-2 text-xs text-zinc-500">Example: 1234567890123 or 1234567890123456</p>
+                          {bankAccountNumberInvalid && (
+                            <p className="mt-2 text-xs font-semibold text-red-600">
+                              Enter exactly 13 digits or 16 digits.
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold mb-1 text-zinc-500 uppercase tracking-wider">Bank Name</label>
+                        <label className="block text-xs font-semibold mb-1 text-zinc-500 uppercase tracking-wider">Bank Name (Auto-filled)</label>
                         <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="E.g. GCB Bank" className="w-full rounded-2xl border border-zinc-200 px-4 py-3 outline-none focus:border-[#A8D5BA] focus:ring-2 focus:ring-[#A8D5BA]/20 transition-all bg-zinc-50 focus:bg-white" />
                       </div>
                     </div>
@@ -839,7 +918,16 @@ export default function RegisterPage() {
                 <div className="space-y-2">
                   <button
                     type="button"
-                    onClick={() => setShowCardFields((prev) => !prev)}
+                    onClick={() =>
+                      setShowCardFields((prev) => {
+                        const next = !prev;
+                        if (!next) {
+                          setCardNumber("");
+                          setError("");
+                        }
+                        return next;
+                      })
+                    }
                     className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-left text-xs font-semibold text-zinc-600 hover:bg-zinc-50 transition-all"
                     aria-expanded={showCardFields}
                   >
@@ -867,6 +955,9 @@ export default function RegisterPage() {
                         className="w-full rounded-2xl border border-zinc-200 px-4 py-3 outline-none focus:border-[#A8D5BA] focus:ring-2 focus:ring-[#A8D5BA]/20 transition-all bg-zinc-50 focus:bg-white"
                       />
                       <p className="mt-2 text-xs text-zinc-500">Example: 4242424242424242 (displays as 4242 4242 4242 4242)</p>
+                      {cardNumberInvalid && (
+                        <p className="mt-2 text-xs font-semibold text-red-600">Enter 13 to 19 digits.</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -932,6 +1023,7 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={handleNext}
+              disabled={step === 3 && (bankAccountNumberInvalid || cardNumberInvalid)}
               className="flex-1 rounded-2xl bg-[#2d3436] px-4 py-4 font-semibold text-white shadow-sm hover:shadow-md transition-all"
             >
               Continue
@@ -957,5 +1049,6 @@ export default function RegisterPage() {
         )}
       </motion.form>
     </div>
+    </>
   );
 }

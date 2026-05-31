@@ -24,6 +24,8 @@ function ResetPinForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const normalizePin = (value: string) => value.replace(/\D/g, "").slice(0, 6);
+
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
@@ -120,10 +122,14 @@ function ResetPinForm() {
           <input
             required
             value={newPin}
-            onChange={(event) => setNewPin(event.target.value)}
+            onChange={(event) => setNewPin(normalizePin(event.target.value))}
             placeholder="••••"
             type="password"
             autoComplete="new-password"
+            inputMode="numeric"
+            minLength={4}
+            maxLength={6}
+            title="Enter a 4 to 6 digit PIN."
             className="w-full rounded-2xl border border-zinc-200 px-4 py-3 outline-none focus:border-[#E8B4B8] focus:ring-2 focus:ring-[#E8B4B8]/20 transition-all text-xl tracking-widest font-semibold text-center bg-zinc-50 focus:bg-white"
           />
         </div>
@@ -132,10 +138,14 @@ function ResetPinForm() {
           <input
             required
             value={confirmPin}
-            onChange={(event) => setConfirmPin(event.target.value)}
+            onChange={(event) => setConfirmPin(normalizePin(event.target.value))}
             placeholder="••••"
             type="password"
             autoComplete="new-password"
+            inputMode="numeric"
+            minLength={4}
+            maxLength={6}
+            title="Enter a 4 to 6 digit PIN."
             className="w-full rounded-2xl border border-zinc-200 px-4 py-3 outline-none focus:border-[#E8B4B8] focus:ring-2 focus:ring-[#E8B4B8]/20 transition-all text-xl tracking-widest font-semibold text-center bg-zinc-50 focus:bg-white"
           />
         </div>

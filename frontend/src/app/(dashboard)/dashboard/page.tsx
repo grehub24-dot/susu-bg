@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowDownRight, ArrowUpRight, Wallet, User, History } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Wallet, User, History, LogOut, Zap, ShieldCheck, PiggyBank } from "lucide-react";
+import { BalanceCardSkeleton, TransactionSkeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type Tx = {
   id: string;
@@ -34,21 +37,35 @@ const itemVariants = {
   };
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [balance, setBalance] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<Tx[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<{ id: string; full_name?: string } | null>(null);
+
+  const onLogout = async () => {
+    try {
+      await fetch("/api/admin-auth/logout", { method: "POST" });
+    } catch {}
+    router.push("/login");
+  };
 
   useEffect(() => {
     const load = async () => {
       try {
-        const userRaw = localStorage.getItem("susu_user");
-        if (!userRaw) {
-          setLoading(false);
+        const sessionRes = await fetch("/api/admin-auth/session", { credentials: "same-origin" });
+        const sessionData = await sessionRes.json();
+
+        if (!sessionRes.ok || !sessionData.authenticated) {
+          router.push("/login");
           return;
         }
-        const user = JSON.parse(userRaw) as { id: string };
+
+        const currentUser = sessionData.user as { id: string };
+        setUser(currentUser);
+
         const walletRes = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/wallet/balance?userId=${user.id}`
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/wallet/balance?userId=${currentUser.id}`
         );
         const walletData = (await walletRes.json()) as WalletResponse;
         if (walletData.success && walletData.wallet) {
@@ -57,7 +74,7 @@ export default function DashboardPage() {
           setBalance(0);
         }
         const txRes = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/transactions/history?userId=${user.id}`
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/transactions/history?userId=${currentUser.id}`
         );
         const txData = (await txRes.json()) as { success: boolean; data?: Tx[] };
         setTransactions(txData.data ?? []);
@@ -84,16 +101,58 @@ export default function DashboardPage() {
               <Wallet size={16} className="text-zinc-500" />
               <p className="text-sm font-medium text-zinc-600">Total Balance</p>
             </div>
-            <Link href="/profile">
-              <motion.div 
+            <div className="flex items-center gap-3">
+              <Link href="/demo-payment">
+                <motion.div 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#A8D5BA]/10 text-[#2d3436] rounded-full text-sm font-medium hover:bg-[#A8D5BA]/20 transition-colors"
+                >
+                  <Zap size={14} className="text-[#A8D5BA] fill-[#A8D5BA]" />
+                  Demo
+                </motion.div>
+              </Link>
+              <Link href="/susu">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#E8B4B8]/10 text-[#2d3436] rounded-full text-sm font-medium hover:bg-[#E8B4B8]/20 transition-colors"
+                >
+                  <PiggyBank size={14} />
+                  Susu
+                </motion.div>
+              </Link>
+              <Link href="/admin">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-zinc-100 text-[#2d3436] rounded-full text-sm font-medium hover:bg-zinc-200 transition-colors"
+                >
+                  <ShieldCheck size={14} />
+                  Admin
+                </motion.div>
+              </Link>
+              <Link href="/profile">
+                <motion.div 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#E8B4B8]/10 text-[#2d3436] rounded-full text-sm font-medium hover:bg-[#E8B4B8]/20 transition-colors"
+                >
+                  <User size={14} />
+                  Profile
+                </motion.div>
+              </Link>
+              <motion.button
+                type="button"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-3 py-1.5 bg-[#E8B4B8]/10 text-[#2d3436] rounded-full text-sm font-medium hover:bg-[#E8B4B8]/20 transition-colors"
+                onClick={onLogout}
+                className="flex items-center gap-2 px-3 py-1.5 bg-zinc-100 text-[#2d3436] rounded-full text-sm font-medium hover:bg-zinc-200 transition-colors"
               >
-                <User size={14} />
-                Profile
-              </motion.div>
-            </Link>
+                <LogOut size={14} />
+                Logout
+              </motion.button>
+            </div>
           </div>
           
           <AnimatePresence mode="wait">

@@ -1,33 +1,64 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Susu-BG Fintech Backend API",
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "lint": "eslint src",
     "typecheck": "node -e \"process.exit(0)\"",
-    "test": "node -e \"process.exit(0)\""
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "reconcile": "node src/scripts/reconciliation-cron.js",
+    "loadtest": "node src/scripts/load-test.js"
   },
-  "keywords": [],
+  "keywords": [
+    "fintech",
+    "susu",
+    "ghana"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@sentry/node": "^7.120.4",
     "@supabase/supabase-js": "^2.101.1",
+    "@types/jsonwebtoken": "^9.0.10",
     "axios": "^1.14.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.0",
     "express": "^5.2.1",
+    "express-rate-limit": "^7.5.1",
+    "jsonwebtoken": "^9.0.3",
     "nodemailer": "^8.0.4",
-    "puppeteer": "^24.40.0",
+    "pdf-parse": "^2.4.5",
+    "pdfkit": "^0.15.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0",
+    "winston": "^3.14.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "eslint": "^10.2.0",
-    "nodemon": "^3.1.14"
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/server.js",
+      "!src/scripts/**"
+    ],
+    "testMatch": [
+      "**/tests/**/*.test.js",
+      "**/__tests__/**/*.js"
+    ]
   }
 }

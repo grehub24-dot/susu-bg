@@ -905,4 +905,109 @@ class AdminController {
 module.exports = AdminController;
 ```
 
+Act as a senior frontend developer. Build UI for the admin panel
+Build a complete mobile-first 3D UI for: [FEATURE]
 
+Stack:
+
+React / Next.js
+
+Tailwind CSS
+
+Framer Motion
+
+Include:
+
+Layout
+
+Components
+
+Animations
+
+API integration
+
+Loading + error states
+
+Design Style:
+
+Modern 3D
+
+Glassmorphism
+
+Soft shadows
+
+Smooth motion
+
+Constraints:
+
+Production-ready
+
+Mobile-first
+
+Fast performance
+
+Output:
+
+File structure
+
+Full code
+
+let it be enterprise level feel in the UI/UX design . let is have a side bar and theme toggle
+
+reference" https://dribbble.com/shots/20346157-Tagih-Simple-Neat-Banking-Admin-Dashboard "," https://dribbble.com/shots/23649078-BankDash-Admin-Dashboard ",
+
+Done
+
+- Built the admin section around a proper banking model: bank revenue and all client balances .
+- Removed more of the generic dashboard/template feel and replaced it with bank-facing finance views.
+- Added backend support that is safe even before the new revenue table is created in Supabase.
+Best Model
+
+- Client balances = sum of every customer wallet balance in wallets.balance
+- Bank revenue = separate ledger entries for fees, loan interest, investment returns, commissions, penalties, and maintenance income
+- Admin dashboard should show both, but never mix them into one fake “balance” number
+Built
+
+- Added revenue_ledger schema to schema.sql
+- Extended admin financial aggregation in admin.controller.js
+- Exposed the summary endpoint in admin.routes.js
+- Reworked the admin UI in page.tsx
+Admin UI Now Shows
+
+- Revenue Overview
+- Revenue This Month
+- Transaction Fees
+- Loan Interest
+- Investment Return
+- Revenue Mix
+- Recent Revenue
+- All Client Balances
+- Average Client Balance
+- Deposits / Withdrawals / Net Flow
+- 7-day client balance trend
+Important Behavior
+
+- If revenue_ledger is not yet created in Supabase, the backend does not break
+- It falls back to transaction-fee revenue derived from transaction metadata where available
+- Loan interest, investment return, commissions, and other revenue categories will stay 0 until real ledger rows are being inserted
+Checks
+
+- Backend lint: passed
+- Frontend type check: passed
+- Frontend lint: no errors in this work; only pre-existing warnings in other files
+What You Need To Do Next
+
+- Apply the new SQL changes from schema.sql to your Supabase database
+- Start writing real rows into revenue_ledger whenever the bank earns:
+  - transaction fees
+  - loan interest
+  - investment returns
+  - commissions
+  - penalties
+  - maintenance/account charges
+Next Best Build
+
+- Wire automatic inserts into revenue_ledger from the payment flow and future loan/investment modules, so the admin dashboard becomes fully live with real revenue sources end-to-end.
+If you want, I can continue immediately with that next step and wire automatic revenue ledger posting for transaction fees first.
+
+based on the explaination ,i want you to set the admin to view the individual users and groups transactions,KYC for both, Messaging, Audit revenue ,system health and settings.
