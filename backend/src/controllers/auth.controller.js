@@ -47,15 +47,6 @@ const loginSchema = z.object({
   pin: z.string().regex(/^\d{4,6}$/)
 });
 
-const adminLoginSchema = z.object({
-  identifier: z.string().min(3),
-  password: z
-    .string()
-    .min(6)
-    .max(128)
-    .regex(/^[A-Za-z0-9!@#$%^&*()_\-+=.?]+$/, "Password contains unsupported characters")
-});
-
 const requestPinResetOtpSchema = z.object({
   identifier: z.string().min(3)
 });
@@ -796,77 +787,6 @@ class AuthController {
         }
       });
     } catch (error) {
-      res.status(400).json({ success: false, message: error.message });
-    }
-  }
-
-  static async adminLogin(req, res) {
-    try {
-      const parsed = adminLoginSchema.parse(req.body);
-      const { data: staffUser, error } = await findStaffByIdentifier(
-        parsed.identifier,
-        "id, staff_code, full_name, email, phone_number, password_hash, role, status"
-      );
-
-      if (error || !staffUser) {
-        res.status(401).json({ success: false, message: "Invalid credentials" });
-        return;
-      }
-
-      if (String(staffUser.status || "").toUpperCase() !== "ACTIVE") {
-        res.status(403).json({ success: false, message: "Access denied. Staff account is inactive." });
-        return;
-      }
-
-      const isValidPassword = await bcrypt.compare(parsed.password, String(staffUser.password_hash || ""));
-      if (!isValidPassword) {
-        res.status(401).json({ success: false, message: "Invalid credentials" });
-        return;
-      }
-
-      const adminSessionToken = generateToken();
-      const { error: sessionError } = await supabase
-        .from("staff_users")
-        .update({
-          admin_session_token: adminSessionToken,
-          admin_session_expires_at: addMinutes(60 * 24), // 24 hours
-          last_login_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", staffUser.id);
-
-      if (sessionError) {
-        res.status(400).json({ success: false, message: sessionError.message });
-        return;
-      }
-
-      res.json({
-        success: true,
-        requiresOtp: false,
-        flow: "admin_login",
-        adminSessionToken,
-        user: {
-          id: staffUser.id,
-          staff_code: staffUser.staff_code,
-          full_name: staffUser.full_name,
-          email: staffUser.email,
-          phone_number: staffUser.phone_number,
-          role: staffUser.role
-        }
-      });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({
-          success: false,
-          message: "Validation failed",
-          issues: error.issues.map((issue) => ({
-            path: issue.path.join("."),
-            message: issue.message
-          }))
-        });
-        return;
-      }
-
       res.status(400).json({ success: false, message: error.message });
     }
   }
