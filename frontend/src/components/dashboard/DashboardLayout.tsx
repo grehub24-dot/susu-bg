@@ -53,15 +53,24 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const [userData, setUserData] = useState<{full_name: string; role: string; roles: string[]} | null>(null);
 
   useEffect(() => {
-    const session = localStorage.getItem("staff_session");
-    if (session) {
-      const parsed = JSON.parse(session);
-      setUserData({
-        full_name: parsed.user?.full_name || "Staff",
-        role: parsed.role || parsed.user?.role || "",
-        roles: parsed.roles || parsed.user?.roles || [],
-      });
-    }
+    const validate = async () => {
+      try {
+        const res = await fetch("/api/staff-session", { credentials: "same-origin" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated && data.user) {
+            setUserData({
+              full_name: data.user.full_name || "Staff",
+              role: data.user.role || "",
+              roles: data.user.roles || [],
+            });
+          }
+        }
+      } catch {
+        // Not authenticated — dashboard will show login redirect
+      }
+    };
+    validate();
   }, []);
 
   const authorizedRoles = userData?.roles || [];
@@ -73,8 +82,12 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
     router.push(url);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("staff_session");
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/staff/logout", { method: "POST", credentials: "same-origin" });
+    } catch {
+      // Logout best-effort — redirect anyway
+    }
     router.push("/staff-login");
   };
 

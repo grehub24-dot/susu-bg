@@ -201,6 +201,8 @@ return;
 
     await logStaffLogin(staffUser, true, "Direct login (MFA disabled)", ip, userAgent);
 
+    res.setHeader("Set-Cookie", createAuthCookie("staff_session", accessToken));
+
     res.json({
       success: true,
       requiresOtp: false,
