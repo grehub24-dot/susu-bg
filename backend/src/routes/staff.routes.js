@@ -435,10 +435,14 @@ const staffRefreshHandler = async (req, res) => {
 
 const listStaffHandler = async (req, res) => {
   try {
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+    const offset = parseInt(req.query.offset) || 0;
+
     const { data: staff, error } = await supabase
       .from("staff_users")
       .select("id, staff_code, full_name, email, phone_number, role, status, last_login_at, created_at")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
 

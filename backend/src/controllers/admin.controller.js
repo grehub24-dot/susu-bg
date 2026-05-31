@@ -66,6 +66,9 @@ class AdminController {
      */
     static async getUsers(req, res) {
         try {
+            const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+            const offset = parseInt(req.query.offset) || 0;
+
             // Join users with their wallets
             const { data, error } = await supabase
                 .from('users')
@@ -73,7 +76,8 @@ class AdminController {
                     id, full_name, phone_number, created_at, kyc_status,
                     wallets ( balance, currency )
                 `)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .range(offset, offset + limit - 1);
 
             if (error) throw error;
             res.json({ success: true, data });
