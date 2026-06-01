@@ -1,9 +1,9 @@
-const { supabaseAdmin } = require('../lib/supabase');
+const supabase = require('../lib/supabase');
 const logger = require('../lib/logger');
 
 class ReconciliationService {
     async reconcilieAllWallets() {
-        const { data: wallets, error } = await supabaseAdmin
+        const { data: wallets, error } = await supabase
             .from('wallets')
             .select('id, balance, updated_at');
 
@@ -12,7 +12,7 @@ class ReconciliationService {
         const discrepancies = [];
 
         for (const wallet of wallets) {
-            const { data: journalData, error: jeError } = await supabaseAdmin
+            const { data: journalData, error: jeError } = await supabase
                 .from('journal_entries')
                 .select('account_code, entry_type, amount_cents')
                 .eq('account_code', 'USER_WALLET')
@@ -56,7 +56,7 @@ class ReconciliationService {
     }
 
     async logReconciliationRun(discrepancies, status) {
-        const { error } = await supabaseAdmin
+        const { error } = await supabase
             .from('audit_logs')
             .insert({
                 action: 'RECONCILIATION',
