@@ -74,7 +74,7 @@ export default function TellerPage() {
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("CASH");
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const backendUrl = "/api/backend";
 
   // Check for existing session on mount
   useEffect(() => {
@@ -155,7 +155,6 @@ export default function TellerPage() {
     setMessage("");
 
     try {
-      if (!backendUrl) throw new Error("Missing NEXT_PUBLIC_BACKEND_URL");
       
       const response = await fetch(
         `${backendUrl}/api/teller/client?identifier=${encodeURIComponent(clientIdentifier)}`,
@@ -192,7 +191,6 @@ export default function TellerPage() {
     setMessage("");
 
     try {
-      if (!backendUrl) throw new Error("Missing NEXT_PUBLIC_BACKEND_URL");
       const endpoint = operationType === "deposit" ? `${backendUrl}/api/teller/deposit` : `${backendUrl}/api/teller/withdrawal`;
       const payload = operationType === "deposit" 
         ? {

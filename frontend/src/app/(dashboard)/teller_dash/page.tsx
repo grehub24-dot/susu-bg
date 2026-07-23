@@ -45,7 +45,7 @@ export default function TellerDashPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [todayStats, setTodayStats] = useState({ deposits: 0, withdrawals: 0, count: 0 });
   const [loading, setLoading] = useState(true);
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const backendUrl = "/api/backend";
 
   useEffect(() => {
     const loadTellerData = async () => {

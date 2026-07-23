@@ -37,7 +37,7 @@ export default function ManagerDashPage() {
     totalUsers: 0,
     branchPerformance: 0,
   });
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const backendUrl = "/api/backend";
 
   useEffect(() => {
     const loadData = async () => {

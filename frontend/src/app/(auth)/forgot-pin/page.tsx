@@ -44,7 +44,7 @@ export default function ForgotPinPage() {
     setMessage("");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/request-pin-reset-otp`, {
+      const response = await fetch(`/api/backend/api/auth/request-pin-reset-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier })

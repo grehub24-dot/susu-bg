@@ -37,7 +37,7 @@ export default function AuditorDashPage() {
     netProfit: 0,
     flaggedItems: 0,
   });
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const backendUrl = "/api/backend";
 
   useEffect(() => {
     const loadData = async () => {

@@ -35,15 +35,19 @@ export type RevenueSummary = {
   withdrawalFees: number;
 };
 
-const getBackendUrl = () => {
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-  if (!backendUrl) throw new Error("Missing NEXT_PUBLIC_BACKEND_URL");
-  return backendUrl;
-};
+/**
+ * All API calls go through the Next.js backend proxy at /api/backend/*.
+ * This routes server-side to avoid direct browser-to-Render rate limiting.
+ */
+const API_BASE = "/api/backend";
+
+import { safeFetchJson } from "@/lib/safe-fetch";
 
 export async function fetchSusuGroups(): Promise<SusuGroup[]> {
-  const res = await fetch(`${getBackendUrl()}/api/susu/groups`, { cache: "no-store" });
-  const data = await res.json();
+  const data = await safeFetchJson<{ success: boolean; data?: SusuGroup[]; message?: string }>(
+    `${API_BASE}/api/susu/groups`,
+    { cache: "no-store" }
+  );
   if (!data.success) throw new Error(data.message || "Failed to load Susu groups");
   return data.data || [];
 }
@@ -56,60 +60,68 @@ export async function createSusuGroup(payload: {
   dailyContribution?: number;
   cycleDays?: number;
 }): Promise<SusuGroup> {
-  const res = await fetch(`${getBackendUrl()}/api/susu/groups`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const data = await res.json();
+  const data = await safeFetchJson<{ success: boolean; data?: SusuGroup; message?: string }>(
+    `${API_BASE}/api/susu/groups`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
   if (!data.success) throw new Error(data.message || "Failed to create Susu group");
-  return data.data;
+  return data.data!;
 }
 
 export async function fetchGroupSummary(groupId: string): Promise<GroupSummary> {
-  const res = await fetch(`${getBackendUrl()}/api/susu/groups/${groupId}/summary`, { cache: "no-store" });
-  const data = await res.json();
+  const data = await safeFetchJson<{ success: boolean; data?: GroupSummary; message?: string }>(
+    `${API_BASE}/api/susu/groups/${groupId}/summary`,
+    { cache: "no-store" }
+  );
   if (!data.success) throw new Error(data.message || "Failed to load group summary");
-  return data.data;
+  return data.data!;
 }
 
 export async function fetchRevenueSummary(groupId: string, startDate: string, endDate: string): Promise<RevenueSummary> {
-  const res = await fetch(
-    `${getBackendUrl()}/api/susu/groups/${groupId}/revenue?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
+  const data = await safeFetchJson<{ success: boolean; data?: RevenueSummary; message?: string }>(
+    `${API_BASE}/api/susu/groups/${groupId}/revenue?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
     { cache: "no-store" }
   );
-  const data = await res.json();
   if (!data.success) throw new Error(data.message || "Failed to load revenue summary");
-  return data.data;
+  return data.data!;
 }
 
 export async function fetchGroupLiquidity(groupId: string) {
-  const res = await fetch(`${getBackendUrl()}/api/susu/groups/${groupId}/liquidity`, { cache: "no-store" });
-  const data = await res.json();
+  const data = await safeFetchJson<{ success: boolean; data?: unknown; message?: string }>(
+    `${API_BASE}/api/susu/groups/${groupId}/liquidity`,
+    { cache: "no-store" }
+  );
   if (!data.success) throw new Error(data.message || "Failed to load liquidity");
   return data.data;
 }
 
 export async function fetchGroupMembers(groupId: string) {
-  const res = await fetch(`${getBackendUrl()}/api/susu/groups/${groupId}/members`, { cache: "no-store" });
-  const data = await res.json();
+  const data = await safeFetchJson<{ success: boolean; data?: unknown[]; message?: string }>(
+    `${API_BASE}/api/susu/groups/${groupId}/members`,
+    { cache: "no-store" }
+  );
   if (!data.success) throw new Error(data.message || "Failed to load members");
   return data.data || [];
 }
 
 export async function fetchGroupCompliance(groupId: string) {
-  const res = await fetch(`${getBackendUrl()}/api/susu/groups/${groupId}/compliance`, { cache: "no-store" });
-  const data = await res.json();
+  const data = await safeFetchJson<{ success: boolean; data?: unknown; message?: string }>(
+    `${API_BASE}/api/susu/groups/${groupId}/compliance`,
+    { cache: "no-store" }
+  );
   if (!data.success) throw new Error(data.message || "Failed to load compliance");
   return data.data;
 }
 
 export async function fetchDailyContributions(groupId: string, date: string) {
-  const res = await fetch(
-    `${getBackendUrl()}/api/susu/groups/${groupId}/contributions?date=${encodeURIComponent(date)}`,
+  const data = await safeFetchJson<{ success: boolean; data?: unknown[]; message?: string }>(
+    `${API_BASE}/api/susu/groups/${groupId}/contributions?date=${encodeURIComponent(date)}`,
     { cache: "no-store" }
   );
-  const data = await res.json();
   if (!data.success) throw new Error(data.message || "Failed to load contributions");
   return data.data || [];
 }
@@ -120,20 +132,24 @@ export async function recordContribution(payload: {
   paymentMethod: "CASH" | "MOBILE_MONEY" | "BANK_TRANSFER";
   collectorId: string;
 }) {
-  const res = await fetch(`${getBackendUrl()}/api/susu/contributions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const data = await res.json();
+  const data = await safeFetchJson<{ success: boolean; data?: unknown; message?: string }>(
+    `${API_BASE}/api/susu/contributions`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
   if (!data.success) throw new Error(data.message || "Failed to record contribution");
   return data;
 }
 
 export async function fetchGroupLoans(groupId: string, status?: string) {
   const query = status ? `?status=${encodeURIComponent(status)}` : "";
-  const res = await fetch(`${getBackendUrl()}/api/susu/groups/${groupId}/loans${query}`, { cache: "no-store" });
-  const data = await res.json();
+  const data = await safeFetchJson<{ success: boolean; data?: unknown[]; message?: string }>(
+    `${API_BASE}/api/susu/groups/${groupId}/loans${query}`,
+    { cache: "no-store" }
+  );
   if (!data.success) throw new Error(data.message || "Failed to load loans");
   return data.data || [];
 }
@@ -147,44 +163,49 @@ export async function applyForLoan(payload: {
   guarantor1Id: string;
   guarantor2Id: string;
 }) {
-  const res = await fetch(`${getBackendUrl()}/api/susu/loans/apply`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const data = await res.json();
+  const data = await safeFetchJson<{ success: boolean; data?: unknown; message?: string }>(
+    `${API_BASE}/api/susu/loans/apply`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
   if (!data.success) throw new Error(data.message || "Failed to apply for loan");
   return data.data;
 }
 
 export async function approveLoan(payload: { loanId: string; collectorId: string }) {
-  const res = await fetch(`${getBackendUrl()}/api/susu/loans/approve`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const data = await res.json();
+  const data = await safeFetchJson<{ success: boolean; message?: string }>(
+    `${API_BASE}/api/susu/loans/approve`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
   if (!data.success) throw new Error(data.message || "Failed to approve loan");
   return data;
 }
 
 export async function disburseLoan(payload: { loanId: string; collectorId: string }) {
-  const res = await fetch(`${getBackendUrl()}/api/susu/loans/disburse`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const data = await res.json();
+  const data = await safeFetchJson<{ success: boolean; message?: string }>(
+    `${API_BASE}/api/susu/loans/disburse`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
   if (!data.success) throw new Error(data.message || "Failed to disburse loan");
   return data;
 }
 
 export async function fetchSmsLogs(groupId: string, startDate: string, endDate: string) {
-  const res = await fetch(
-    `${getBackendUrl()}/api/susu/groups/${groupId}/sms-logs?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
+  const data = await safeFetchJson<{ success: boolean; data?: unknown[]; message?: string }>(
+    `${API_BASE}/api/susu/groups/${groupId}/sms-logs?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
     { cache: "no-store" }
   );
-  const data = await res.json();
   if (!data.success) throw new Error(data.message || "Failed to load SMS logs");
   return data.data || [];
 }

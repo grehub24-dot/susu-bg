@@ -83,11 +83,28 @@ export default function AdminSystemHealthPage() {
           fetch("/api/backend-health", { cache: "no-store" }),
           fetch(`${adminApiBase}/health`, { cache: "no-store" })
         ]);
-        const publicJson = (await publicRes.json()) as { ok?: boolean; message?: string };
+
+        // Safely parse public health response
+        let publicJson: { ok?: boolean; message?: string } = {};
+        if (publicRes.ok) {
+          try { publicJson = (await publicRes.json()) as typeof publicJson; } catch { /* non-JSON */ }
+        }
+
+        // Safely parse admin health response
+        if (!adminRes.ok) {
+          let msg = `Health check failed (status ${adminRes.status})`;
+          try {
+            const errText = await adminRes.text();
+            try { msg = JSON.parse(errText).message || msg; } catch { if (errText.trim()) msg = errText.trim(); }
+          } catch { /* ignore */ }
+          if (adminRes.status === 429) msg = "Too many requests. Please wait and try again.";
+          throw new Error(msg);
+        }
         const adminJson = (await adminRes.json()) as { success: boolean; data?: HealthData; message?: string };
+
         if (cancelled) return;
         setPublicHealthOk(Boolean(publicRes.ok && publicJson?.ok));
-        if (!adminRes.ok || !adminJson.success) throw new Error(adminJson.message || "Health check failed");
+        if (!adminJson.success) throw new Error(adminJson.message || "Health check failed");
         setData(adminJson.data || null);
       } catch (err) {
         if (cancelled) return;

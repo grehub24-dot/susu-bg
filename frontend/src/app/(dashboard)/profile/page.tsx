@@ -134,8 +134,8 @@ export default function ProfilePage() {
 
       try {
         const initialUrl = sessionUser?.id
-          ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/profile?userId=${encodeURIComponent(String(sessionUser.id))}`
-          : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/profile?identifier=${encodeURIComponent(
+          ? `/api/backend/api/users/profile?userId=${encodeURIComponent(String(sessionUser.id))}`
+          : `/api/backend/api/users/profile?identifier=${encodeURIComponent(
               String(sessionUser.email || sessionUser.phone_number || sessionUser.phoneNumber || "")
             )}`;
 
@@ -172,7 +172,7 @@ export default function ProfilePage() {
     setMessage("");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/profile`, {
+      const response = await fetch(`/api/backend/api/users/profile`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

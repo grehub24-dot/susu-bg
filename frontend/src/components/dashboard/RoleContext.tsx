@@ -98,7 +98,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/staff/logout`, {
+      await fetch("/api/backend/api/staff/logout", {
         method: "POST",
         credentials: "same-origin"
       });

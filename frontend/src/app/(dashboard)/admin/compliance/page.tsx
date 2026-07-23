@@ -47,7 +47,7 @@ const card =
   "rounded-[1.75rem] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-6 md:p-8 shadow-[0_18px_55px_rgba(0,0,0,0.10)] backdrop-blur-xl";
 
 export default function AdminCompliancePage() {
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const backendUrl = "/api/backend";
   const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY;
 
   const [flags, setFlags] = useState<ComplianceFlag[]>([]);

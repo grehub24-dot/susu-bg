@@ -48,7 +48,7 @@ export function useDashboardData(): DashboardData {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const backendUrl = "/api/backend";
 
   const fetchData = useCallback(async () => {
     // Get token from localStorage directly (no useRole dependency)

@@ -61,10 +61,21 @@ export default function TransactionsPage() {
     const load = async () => {
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/transactions/history?userId=${userId}`
+          `/api/backend/api/transactions/history?userId=${userId}`
         );
+        if (!response.ok) {
+          let msg = `Failed to load transactions (status ${response.status})`;
+          try {
+            const errText = await response.text();
+            try { msg = JSON.parse(errText).message || msg; } catch { if (errText.trim()) msg = errText.trim(); }
+          } catch { /* ignore */ }
+          if (response.status === 429) msg = "Too many requests. Please wait and try again.";
+          throw new Error(msg);
+        }
         const data = (await response.json()) as { success: boolean; data?: Tx[] };
         setRows(data.data ?? []);
+      } catch {
+        setRows([]);
       } finally {
         setLoading(false);
       }

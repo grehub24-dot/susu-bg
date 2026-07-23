@@ -68,7 +68,7 @@ function VerifyOtpForm() {
         isRegistrationResend ? { identifier } : { sessionToken };
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/${resendEndpoint}`,
+        `/api/backend/api/auth/${resendEndpoint}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -158,7 +158,7 @@ function VerifyOtpForm() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/${endpoint}`,
+        `/api/backend/api/auth/${endpoint}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

@@ -87,7 +87,7 @@ export default function DemoPaymentPage() {
     setResult(null);
 
     try {
-      const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/transactions/demo`;
+      const apiUrl = `/api/backend/api/transactions/demo`;
       console.log(`Calling API: ${apiUrl}`);
       
       const response = await fetch(apiUrl, {
@@ -176,7 +176,7 @@ export default function DemoPaymentPage() {
       // First stage: Initiated notification
       setLoading(true);
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/transactions/demo`, {
+        const response = await fetch(`/api/backend/api/transactions/demo`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

@@ -100,6 +100,15 @@ export default function AdminCompliancePage() {
       setError("");
       try {
         const response = await fetch("/api/admin-proxy/compliance/dashboard", { cache: "no-store" });
+        if (!response.ok) {
+          let msg = `Failed to load compliance data (status ${response.status})`;
+          try {
+            const errText = await response.text();
+            try { msg = JSON.parse(errText).message || msg; } catch { if (errText.trim()) msg = errText.trim(); }
+          } catch { /* ignore */ }
+          if (response.status === 429) msg = "Too many requests. Please wait and try again.";
+          throw new Error(msg);
+        }
         const data = await response.json();
 
         if (data.success) {

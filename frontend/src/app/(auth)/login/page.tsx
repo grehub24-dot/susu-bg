@@ -11,7 +11,7 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export default function LoginPage() {
   const router = useRouter();
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const backendUrl = "/api/backend";
   const [identifier, setIdentifier] = useState("");
   const [pin, setPin] = useState("");
   const [isPageLoading, setIsPageLoading] = useState(true);

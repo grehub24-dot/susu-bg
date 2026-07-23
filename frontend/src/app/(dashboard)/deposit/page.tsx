@@ -95,8 +95,19 @@ export default function DepositPage() {
         return;
       }
       const walletRes = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/wallet/balance?userId=${userId}`
+        `/api/backend/api/wallet/balance?userId=${userId}`
       );
+      if (!walletRes.ok) {
+        let msg = `Failed to load wallet (status ${walletRes.status})`;
+        try {
+          const errText = await walletRes.text();
+          try { msg = JSON.parse(errText).message || msg; } catch { if (errText.trim()) msg = errText.trim(); }
+        } catch { /* ignore */ }
+        if (walletRes.status === 429) msg = "Too many requests. Please wait and try again.";
+        showError(msg);
+        setLoading(false);
+        return;
+      }
       const walletJson = (await walletRes.json()) as {
         success: boolean;
         wallet?: { id: string };
@@ -110,7 +121,7 @@ export default function DepositPage() {
 
       const reference = `DEP-${Date.now()}`;
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/transactions/deposit`,
+        `/api/backend/api/transactions/deposit`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -122,12 +133,23 @@ export default function DepositPage() {
           })
         }
       );
+      if (!response.ok) {
+        let msg = `Deposit initialization failed (status ${response.status})`;
+        try {
+          const errText = await response.text();
+          try { msg = JSON.parse(errText).message || msg; } catch { if (errText.trim()) msg = errText.trim(); }
+        } catch { /* ignore */ }
+        if (response.status === 429) msg = "Too many requests. Please wait and try again.";
+        showError(msg);
+        setLoading(false);
+        return;
+      }
       const data = (await response.json()) as {
         success: boolean;
         authorization_url?: string;
         message?: string;
       };
-      if (!response.ok || !data.success || !data.authorization_url) {
+      if (!data.success || !data.authorization_url) {
         showError(data.message || "Deposit initialization failed");
         setLoading(false);
         return;

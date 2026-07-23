@@ -58,7 +58,7 @@ function ResetPinForm() {
     try {
       const selfieImageDataUrl = await readFileAsDataUrl(selfieFile);
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/reset-pin`,
+        `/api/backend/api/auth/reset-pin`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

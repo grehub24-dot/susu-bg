@@ -61,7 +61,7 @@ export default function SusuDashboard() {
   const [revenueSummary, setRevenueSummary] = useState<RevenueSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'loans' | 'revenue'>('overview');
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const backendUrl = "/api/backend";
 
   useEffect(() => {
     loadGroups();
@@ -76,7 +76,6 @@ export default function SusuDashboard() {
 
   const loadGroups = async () => {
     try {
-      if (!backendUrl) throw new Error("Missing NEXT_PUBLIC_BACKEND_URL");
       const response = await fetch(`${backendUrl}/api/susu/groups`);
       const data = await response.json();
       if (data.success) {
@@ -94,7 +93,6 @@ export default function SusuDashboard() {
 
   const loadGroupSummary = async (groupId: string) => {
     try {
-      if (!backendUrl) throw new Error("Missing NEXT_PUBLIC_BACKEND_URL");
       const response = await fetch(`${backendUrl}/api/susu/groups/${groupId}/summary`);
       const data = await response.json();
       if (data.success) {
@@ -110,7 +108,6 @@ export default function SusuDashboard() {
       const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const endDate = new Date().toISOString().split('T')[0];
       
-      if (!backendUrl) throw new Error("Missing NEXT_PUBLIC_BACKEND_URL");
       const response = await fetch(`${backendUrl}/api/susu/groups/${groupId}/revenue?startDate=${startDate}&endDate=${endDate}`);
       const data = await response.json();
       if (data.success) {

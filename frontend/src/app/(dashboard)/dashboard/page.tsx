@@ -65,7 +65,7 @@ export default function DashboardPage() {
         setUser(currentUser);
 
         const walletRes = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/wallet/balance?userId=${currentUser.id}`
+          `/api/backend/api/wallet/balance?userId=${currentUser.id}`
         );
         const walletData = (await walletRes.json()) as WalletResponse;
         if (walletData.success && walletData.wallet) {
@@ -74,7 +74,7 @@ export default function DashboardPage() {
           setBalance(0);
         }
         const txRes = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/transactions/history?userId=${currentUser.id}`
+          `/api/backend/api/transactions/history?userId=${currentUser.id}`
         );
         const txData = (await txRes.json()) as { success: boolean; data?: Tx[] };
         setTransactions(txData.data ?? []);

@@ -20,7 +20,7 @@ type Step = "credentials" | "otp";
 
 export default function StaffLoginPage() {
   const router = useRouter();
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const backendUrl = "/api/backend";
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   

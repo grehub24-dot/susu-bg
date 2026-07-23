@@ -65,6 +65,17 @@ function PayoutReceiptContent() {
       if (membershipId) params.set("membershipId", membershipId);
 
       const res = await fetch(`/api/admin-proxy/susu-payouts?${params.toString()}`);
+
+      if (!res.ok) {
+        let msg = `Failed to load payout (status ${res.status})`;
+        try {
+          const errText = await res.text();
+          try { msg = JSON.parse(errText).message || msg; } catch { if (errText.trim()) msg = errText.trim(); }
+        } catch { /* ignore */ }
+        if (res.status === 429) msg = "Too many requests. Please wait and try again.";
+        throw new Error(msg);
+      }
+
       const data = await res.json();
 
       if (data.success && data.data?.length > 0) {

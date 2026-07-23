@@ -80,13 +80,26 @@ async function forward(request: NextRequest, method: "GET" | "POST" | "PATCH" | 
   }
 
   const upstream = await fetch(targetUrl, init);
-  const text = await upstream.text();
+  const rawText = await upstream.text();
 
-  return new NextResponse(text, {
-    status: upstream.status,
+  // If upstream returned non-JSON (e.g. "Too Many Requests" from rate limiting),
+  // wrap it in a proper JSON error response so the frontend can handle it.
+  let responseBody = rawText;
+  let responseStatus = upstream.status;
+  const contentType = upstream.headers.get("content-type") || "application/json";
+
+  if (!contentType.includes("application/json") && upstream.status >= 400) {
+    const wrappedMessage = upstream.status === 429
+      ? "Too many requests. Please wait and try again."
+      : rawText.trim() || `Backend returned status ${upstream.status}`;
+    responseBody = JSON.stringify({ success: false, message: wrappedMessage });
+  }
+
+  return new NextResponse(responseBody, {
+    status: responseStatus,
     headers: {
-      "content-type": upstream.headers.get("content-type") || "application/json"
-    }
+      "content-type": "application/json",
+    },
   });
 }
 

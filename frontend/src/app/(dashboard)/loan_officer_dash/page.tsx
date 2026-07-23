@@ -36,7 +36,7 @@ export default function LoanOfficerDashPage() {
     loanPortfolio: 0,
     defaultRate: 0,
   });
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const backendUrl = "/api/backend";
 
   useEffect(() => {
     const loadData = async () => {

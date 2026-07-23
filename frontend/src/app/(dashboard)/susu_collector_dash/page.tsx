@@ -33,7 +33,7 @@ export default function SusuCollectorDashPage() {
   const [groups, setGroups] = useState<SusuGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const backendUrl = "/api/backend";
 
   useEffect(() => {
     const loadGroups = async () => {

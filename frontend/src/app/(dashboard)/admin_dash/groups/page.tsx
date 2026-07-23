@@ -77,8 +77,17 @@ export default function AdminGroupsPage() {
       setError("");
       try {
         const res = await fetch(`${adminApiBase}/susu/groups?limit=100&offset=0`, { cache: "no-store" });
+        if (!res.ok) {
+          let msg = `Failed to load groups (status ${res.status})`;
+          try {
+            const errText = await res.text();
+            try { msg = JSON.parse(errText).message || msg; } catch { if (errText.trim()) msg = errText.trim(); }
+          } catch { /* ignore */ }
+          if (res.status === 429) msg = "Too many requests. Please wait and try again.";
+          throw new Error(msg);
+        }
         const json = (await res.json()) as { success: boolean; data?: SusuGroupRow[]; message?: string };
-        if (!res.ok || !json.success) throw new Error(json.message || "Failed to load groups");
+        if (!json.success) throw new Error(json.message || "Failed to load groups");
         setRows(Array.isArray(json.data) ? json.data : []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load groups");

@@ -86,8 +86,18 @@ export default function AdminRevenuePage() {
 
         const res = await fetch(`${adminApiBase}/revenue/ledger?${params.toString()}`, { cache: "no-store" });
 
+        if (!res.ok) {
+          let msg = `Failed to load revenue ledger (status ${res.status})`;
+          try {
+            const errText = await res.text();
+            try { msg = JSON.parse(errText).message || msg; } catch { if (errText.trim()) msg = errText.trim(); }
+          } catch { /* ignore */ }
+          if (res.status === 429) msg = "Too many requests. Please wait and try again.";
+          throw new Error(msg);
+        }
+
         const json = (await res.json()) as { success: boolean; data?: RevenueRow[]; message?: string };
-        if (!res.ok || !json.success) throw new Error(json.message || "Failed to load revenue ledger");
+        if (!json.success) throw new Error(json.message || "Failed to load revenue ledger");
         setRows(Array.isArray(json.data) ? json.data : []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load revenue ledger");

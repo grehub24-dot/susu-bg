@@ -44,7 +44,7 @@ class AdminClient {
   private defaultRetryDelay = 1000;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+    this.baseUrl = "/api/backend";
   }
 
   private async delay(ms: number): Promise<void> {
@@ -52,13 +52,16 @@ class AdminClient {
   }
 
   private buildUrl(endpoint: string, params?: Record<string, string | number | boolean>): string {
-    const url = new URL(`${this.baseUrl}/api/admin${endpoint}`);
+    let path = `${this.baseUrl}/api/admin${endpoint}`;
     if (params) {
+      const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
-        url.searchParams.append(key, String(value));
+        searchParams.append(key, String(value));
       });
+      const qs = searchParams.toString();
+      if (qs) path += `?${qs}`;
     }
-    return url.toString();
+    return path;
   }
 
   private async fetchWithRetry<T>(

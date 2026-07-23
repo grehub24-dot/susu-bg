@@ -54,8 +54,8 @@ export default function GhanaPayVerificationPage() {
     setLoading(true);
     try {
       const endpoint = activeTab === "pending"
-        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/ghanapay/pending`
-        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/ghanapay/history`;
+        ? `/api/backend/api/ghanapay/pending`
+        : `/api/backend/api/ghanapay/history`;
 
       const response = await fetch(endpoint, {
         credentials: "same-origin"
@@ -79,7 +79,7 @@ export default function GhanaPayVerificationPage() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/ghanapay/verify`, {
+      const response = await fetch(`/api/backend/api/ghanapay/verify`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
